@@ -1,0 +1,295 @@
+{
+  "ingredient": {
+    "id": 1,
+    "name": "apple",
+    "calories_per_100_gram": 52,
+    "weight_per_piece": 100
+  },
+  "recipe": {
+    "id": 1,
+    "name": "Apple smoothie",
+    "directions": "This apple smoothie couldn’t be easier. Once you have your ingredients, simply place them in your blender and puree away.\nI like to add a handful of ice to the smoothie at the end to make it extra thick. Since the apple isn’t frozen, the ice gives it the right amount of body and makes it cool and refreshing",
+    "ingredients": [
+      {
+        "ingredient_id": 1,
+        "amount": {
+          "qty": 1
+        }
+      },
+      {
+        "ingredient_id": 2,
+        "amount": {
+          "qty": 1
+        }
+      },
+      {
+        "ingredient_id": 3,
+        "amount": {
+          "weight": 5
+        }
+      },
+      {
+        "ingredient_id": 4,
+        "amount": {
+          "volume": 500
+        }
+      },
+      {
+        "ingredient_id": 5,
+        "amount": {
+          "weight": 100
+        }
+      }
+    ]
+  },
+  "menu": {
+    "monday": {
+      "breakfast": [
+        {
+          "recipe_id": 1
+        }
+      ],
+      "dinner": [
+        {
+          "recipe_id": 2
+        },
+        {
+          "recipe_id": 3
+        }
+      ],
+      "lunch": [
+        {
+          "recipe_id": 4
+        },
+        {
+          "recipe_id": 5
+        }
+      ],
+      "supper": [
+        {
+          "recipe_id": 6
+        },
+        {
+          "recipe_id": 7
+        }
+      ]
+    },
+    "tuesday": {
+      "breakfast": [
+        {
+          "recipe_id": 1
+        }
+      ],
+      "dinner": [
+        {
+          "recipe_id": 2
+        },
+        {
+          "recipe_id": 3
+        }
+      ],
+      "lunch": [
+        {
+          "recipe_id": 4
+        },
+        {
+          "recipe_id": 5
+        }
+      ],
+      "supper": [
+        {
+          "recipe_id": 6
+        },
+        {
+          "recipe_id": 7
+        }
+      ]
+    },
+    "wednesday": {
+      "breakfast": [
+        {
+          "recipe_id": 1
+        }
+      ],
+      "dinner": [
+        {
+          "recipe_id": 2
+        },
+        {
+          "recipe_id": 3
+        }
+      ],
+      "lunch": [
+        {
+          "recipe_id": 4
+        },
+        {
+          "recipe_id": 5
+        }
+      ],
+      "supper": [
+        {
+          "recipe_id": 6
+        },
+        {
+          "recipe_id": 7
+        }
+      ]
+    },
+    "thursday": {
+      "breakfast": [
+        {
+          "recipe_id": 1
+        }
+      ],
+      "dinner": [
+        {
+          "recipe_id": 2
+        },
+        {
+          "recipe_id": 3
+        }
+      ],
+      "lunch": [
+        {
+          "recipe_id": 4
+        },
+        {
+          "recipe_id": 5
+        }
+      ],
+      "supper": [
+        {
+          "recipe_id": 6
+        },
+        {
+          "recipe_id": 7
+        }
+      ]
+    },
+    "friday": {
+      "breakfast": [
+        {
+          "recipe_id": 1
+        }
+      ],
+      "dinner": [
+        {
+          "recipe_id": 2
+        },
+        {
+          "recipe_id": 3
+        }
+      ],
+      "lunch": [
+        {
+          "recipe_id": 4
+        },
+        {
+          "recipe_id": 5
+        }
+      ],
+      "supper": [
+        {
+          "recipe_id": 6
+        },
+        {
+          "recipe_id": 7
+        }
+      ]
+    },
+    "saturday": {
+      "breakfast": [
+        {
+          "recipe_id": 1
+        }
+      ],
+      "dinner": [
+        {
+          "recipe_id": 2
+        },
+        {
+          "recipe_id": 3
+        }
+      ],
+      "lunch": [
+        {
+          "recipe_id": 4
+        },
+        {
+          "recipe_id": 5
+        }
+      ],
+      "supper": [
+        {
+          "recipe_id": 6
+        },
+        {
+          "recipe_id": 7
+        }
+      ]
+    },
+    "sunday": {
+      "breakfast": [
+        {
+          "recipe_id": 1
+        }
+      ],
+      "dinner": [
+        {
+          "recipe_id": 2
+        },
+        {
+          "recipe_id": 3
+        }
+      ],
+      "lunch": [
+        {
+          "recipe_id": 4
+        },
+        {
+          "recipe_id": 5
+        }
+      ],
+      "supper": [
+        {
+          "recipe_id": 6
+        },
+        {
+          "recipe_id": 7
+        }
+      ]
+    }
+  },
+  "gender_types": {
+    "male": 1,
+    "female": 2,
+    "non-binary": 3
+  },
+  "user": {
+    "id": 1,
+    "personal_info": {
+      "age": 20,
+      "weight": 85,
+      "height": 200,
+      "gender": 1,
+      "allergies": [
+        "peanuts"
+      ],
+      "is_vegan": false,
+      "is_vegetarian": false
+    },
+    "calories_per_day": 2000,
+    "nutrition": [{
+      "menu_id": 1,
+      "is_active": false
+    },
+    {
+      "menu_id": 2,
+      "is_active": true
+    }]
+  }
+}
+
+
+
