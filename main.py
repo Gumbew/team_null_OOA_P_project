@@ -1,5 +1,5 @@
 from telegram import InlineQueryResultArticle, InputTextMessageContent
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, InlineQueryHandler
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, InlineQueryHandler, ConversationHandler
 import logging
 import os
 
@@ -38,6 +38,18 @@ def inline_caps(update, context):
     context.bot.answer_inline_query(update.inline_query.id, results)
 
 
+def get_name(update, context):
+    context.bot.send_message(chat_id=update.effective_chat.id, text=f"Hello, {update.message.text}!")
+    return ConversationHandler.END
+
+
+def ask_user_info(update, context):
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Let's start with the name!")
+    # get_name_handler = MessageHandler(Filters.text & (~Filters.command), get_name)
+    # dispatcher.add_handler(get_name_handler)
+    return "get_name"
+
+
 def unknown(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I did not understand that command.")
 
@@ -45,14 +57,26 @@ def unknown(update, context):
 start_handler = CommandHandler('start', start)
 dispatcher.add_handler(start_handler)
 
-echo_handler = MessageHandler(Filters.text & (~Filters.command), echo)
-dispatcher.add_handler(echo_handler)
 
 caps_handler = CommandHandler('caps', caps)
 dispatcher.add_handler(caps_handler)
 
 inline_caps_handler = InlineQueryHandler(inline_caps)
 dispatcher.add_handler(inline_caps_handler)
+
+ask_user_info_handler = ConversationHandler(
+    entry_points=[
+        MessageHandler(Filters.command & Filters.regex("register"), ask_user_info)
+    ],
+    states={
+        "get_name": [MessageHandler(Filters.text, get_name)]
+    },
+    fallbacks=[]
+)
+dispatcher.add_handler(ask_user_info_handler)
+
+echo_handler = MessageHandler(Filters.text & (~Filters.command), echo)
+dispatcher.add_handler(echo_handler)
 
 # should always be last of the handlers in the code
 unknown_handler = MessageHandler(Filters.command, unknown)
