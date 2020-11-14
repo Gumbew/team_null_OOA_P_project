@@ -1,12 +1,13 @@
-from telegram import InlineQueryResultArticle, InputTextMessageContent
+from telegram import InlineQueryResultArticle, InputTextMessageContent, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ConversationHandler
+from telegram.keyboardbutton import KeyboardButton
 import re
 import pymongo
 from pymongo import MongoClient
 
 client = MongoClient('localhost', 27017)
 db = client['ooa']
-# db['users'].drop()
+db['users'].drop()
 collection = db['users']
 
 
@@ -64,26 +65,21 @@ def get_age(update, context):
                                      text=f"Are you sure your age is {ages[0]}? "
                                           f"Please double-check and enter your age once again:")
             return "get_age"
+        button = KeyboardButton(text="Male", callback_data="Male")
+        button2 = KeyboardButton(text="Female", callback_data="Female")
+        markup = ReplyKeyboardMarkup([[button, button2]], one_time_keyboard=True)
         context.bot.send_message(chat_id=update.effective_chat.id,
-                                 text="Cool! Please let me know if you are male or female (M/F):")
+                                 text="Cool! Please let me know if you are male or female:",
+                                 reply_markup=markup)
+
     return "get_sex"
 
 
 def get_sex(update, context):
-    sexes = re.findall(r"(male|female|\bm\b|\bf\b|man|woman)", update.message.text.lower())
-    if sexes:
-        if all(s in ("male", "m", "man") for s in sexes):
-            sex = "M"
-        elif all(s in ("female", "f", "woman") for s in sexes):
-            sex = "F"
-        else:
-            sex = "?"
-    else:
-        sex = "?"
-
-    if sex == "?":
+    sex = update.message.text
+    if sex not in ("Male", "Female"):
         context.bot.send_message(chat_id=update.effective_chat.id,
-                                 text="Not sure I got that right. Please specify one more time.")
+                                 text="Please choose one from the options below:")
         return "get_sex"
 
     context.bot.send_message(chat_id=update.effective_chat.id,
@@ -138,11 +134,28 @@ def get_weight(update, context):
             return "get_weight"
 
     context.bot.send_message(chat_id=update.effective_chat.id, text="Thank you!")
-    # return "insert_user"
+    insert_user(update, context)
+
+
+def insert_user(update, context):
+    def calc_calories():
+        if person["sex"] == "M":
+            k_1 = 88.36
+            k_2 = 13.4
+            k_3 = 4.8
+            k_4 = 5.7
+        else:
+            k_1 = 447.6
+            k_2 = 9.2
+            k_3 = 3.1
+            k_4 = 4.3
+        calories = 1.2 * (k_1 + k_2 * int(person["weight"]) + k_3 * int(person["height"]) - k_4 * int(person["age"]))
+        return int(round(calories, -2))
 
     # add user to DB
     person["telegram_user_id"] = update.effective_user.id
     person["_id"] = collection.find().count() + 1
+    person["calories"] = calc_calories()
     collection.insert_one(person)
     context.bot.send_message(chat_id=update.effective_chat.id, text=f" Enter /show to see your info!")
     return ConversationHandler.END
@@ -159,6 +172,8 @@ Sex - {person["sex"]}
 Age - {person["age"]}
 Height - {person["height"]}
 Weight - {person["weight"]}
+
+Daily norm of calories - {person["calories"]}
 """)
     else:
         context.bot.send_message(chat_id=update.effective_chat.id, text=f"No info found!")
