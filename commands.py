@@ -1,7 +1,13 @@
 from telegram import InlineQueryResultArticle, InputTextMessageContent
 from telegram.ext import ConversationHandler
 import re
+import pymongo
+from pymongo import MongoClient
 
+client = MongoClient('localhost', 27017)
+db = client['ooa']
+collection = db['users']
+# collection.insert_one({"test_id": "Illia2"})
 
 def start(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id,
@@ -39,8 +45,7 @@ def get_name(update, context):
 
 
 def get_age(update, context):
-    ages = re.findall(r"\d{1,2}", update.message.text)
-    print(ages)
+    ages = re.findall(r"\d{1,3}", update.message.text)
     if not ages:
         context.bot.send_message(chat_id=update.effective_chat.id,
                                  text=f"Please enter your age as a number:")
@@ -57,6 +62,7 @@ def get_age(update, context):
             context.bot.send_message(chat_id=update.effective_chat.id,
                                      text=f"Are you sure your age is {ages[0]}? "
                                           f"Please double-check and enter your age once again:")
+            return "get_age"
         context.bot.send_message(chat_id=update.effective_chat.id,
                                  text="Cool! Please let me know if you are male or female (M/F):")
     return "get_sex"
@@ -64,7 +70,6 @@ def get_age(update, context):
 
 def get_sex(update, context):
     sexes = re.findall(r"(male|female|\bm\b|\bf\b|man|woman)", update.message.text.lower())
-    print(sexes)
     if sexes:
         if all(s in ("male", "m", "man") for s in sexes):
             sex = "M"
@@ -88,7 +93,6 @@ def get_sex(update, context):
 
 def get_height(update, context):
     heights = re.findall(r"\d{2,3}", update.message.text)
-    print(heights)
     if not heights:
         context.bot.send_message(chat_id=update.effective_chat.id,
                                  text=f"Please enter your height as a number:")
@@ -128,14 +132,29 @@ def get_weight(update, context):
                                           f"Please double-check and enter your weight once again:")
             return "get_weight"
 
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Thank you! Enter /show to see your info!")
-    return "get_person_info"
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Thank you!")
+    # return "insert_user"
 
-
-def get_person_info(update, context):
-    print(person)
-    context.bot.send_message(chat_id=update.effective_chat.id, text=f"{person}")
+    # add user to DB
+    person["telegram_user_id"] = update.effective_user.id
+    collection.insert_one(person)
+    context.bot.send_message(chat_id=update.effective_chat.id, text=f" Enter /show to see your info!")
     return ConversationHandler.END
+
+# def insert_user(update, context):
+#     # add user to DB
+#     person["telegram_user_id"] = update.effective_user.id
+#     collection.insert_one(person)
+#     context.bot.send_message(chat_id=update.effective_chat.id, text=f" Enter /show to see your info!")
+#     return ConversationHandler.END
+
+
+def show_info(update, context):
+    person = collection.find_one({"telegram_user_id": update.effective_user.id})
+    if person:
+        context.bot.send_message(chat_id=update.effective_chat.id, text=f"{person}")
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id, text=f"No info found!")
 
 
 def fallback(update, context):
@@ -144,8 +163,20 @@ def fallback(update, context):
 
 
 def ask_user_info(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Let's start with the name!")
-    return "get_name"
+    if collection.find_one({"telegram_user_id": update.effective_user.id}):
+        context.bot.send_message(chat_id=update.effective_chat.id, text="You are already registered!")
+        return ConversationHandler.END
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Let's start with the name!")
+        return "get_name"
+
+
+def register(update, context):
+    # check if user is registered
+    if collection.find_one({"telegram_user_id": update.effective_user.id}):
+        context.bot.send_message(chat_id=update.effective_chat.id, text="You are already registered!")
+    else:
+        ask_user_info(update, context)
 
 
 def unknown(update, context):
