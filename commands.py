@@ -96,10 +96,12 @@ def get_height(update, context):
     if not heights:
         context.bot.send_message(chat_id=update.effective_chat.id,
                                  text=f"Please enter your height as a number:")
+        return "get_height"
     if len(heights) > 1:
         context.bot.send_message(chat_id=update.effective_chat.id,
                                  text=f"Not sure which one of these is your height: {', '.join(heights)}. "
                                       f"Please enter the valid one:")
+        return "get_height"
     else:
         # 55 to 272
         if 55 <= int(heights[0]) <= 272:
@@ -118,10 +120,12 @@ def get_weight(update, context):
     if not weights:
         context.bot.send_message(chat_id=update.effective_chat.id,
                                  text=f"Please enter your weight as a number:")
+        return "get_weight"
     if len(weights) > 1:
         context.bot.send_message(chat_id=update.effective_chat.id,
                                  text=f"Not sure which one of these is your weight: {', '.join(weights)}. "
                                       f"Please enter the valid one:")
+        return "get_weight"
     else:
         # 10 to 442
         if 10 <= int(weights[0]) <= 442:
@@ -177,6 +181,10 @@ def register(update, context):
         context.bot.send_message(chat_id=update.effective_chat.id, text="You are already registered!")
     else:
         ask_user_info(update, context)
+
+
+def update_info(update, context):
+    pass
 
 
 def unknown(update, context):
