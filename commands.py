@@ -6,8 +6,9 @@ from pymongo import MongoClient
 
 client = MongoClient('localhost', 27017)
 db = client['ooa']
+# db['users'].drop()
 collection = db['users']
-# collection.insert_one({"test_id": "Illia2"})
+
 
 def start(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id,
@@ -141,22 +142,24 @@ def get_weight(update, context):
 
     # add user to DB
     person["telegram_user_id"] = update.effective_user.id
+    person["_id"] = collection.find().count() + 1
     collection.insert_one(person)
     context.bot.send_message(chat_id=update.effective_chat.id, text=f" Enter /show to see your info!")
     return ConversationHandler.END
-
-# def insert_user(update, context):
-#     # add user to DB
-#     person["telegram_user_id"] = update.effective_user.id
-#     collection.insert_one(person)
-#     context.bot.send_message(chat_id=update.effective_chat.id, text=f" Enter /show to see your info!")
-#     return ConversationHandler.END
 
 
 def show_info(update, context):
     person = collection.find_one({"telegram_user_id": update.effective_user.id})
     if person:
-        context.bot.send_message(chat_id=update.effective_chat.id, text=f"{person}")
+        context.bot.send_message(chat_id=update.effective_chat.id, text=f"""
+    Here is your information:
+
+Name - {person["name"]}
+Sex - {person["sex"]}
+Age - {person["age"]}
+Height - {person["height"]}
+Weight - {person["weight"]}
+""")
     else:
         context.bot.send_message(chat_id=update.effective_chat.id, text=f"No info found!")
 
