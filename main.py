@@ -1,7 +1,9 @@
-from telegram import InlineQueryResultArticle, InputTextMessageContent
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, InlineQueryHandler, ConversationHandler
 import logging
 import os
+
+from commands import start, caps, inline_caps, ask_user_info, get_name, get_age, get_sex, get_height, get_weight, \
+   get_person_info, fallback,  echo, unknown
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -11,69 +13,38 @@ TOKEN = os.environ.get("TOKEN")
 updater = Updater(token=TOKEN, use_context=True)
 dispatcher = updater.dispatcher
 
-
-def start(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id,
-                             text="Hello, this is EatHealthyBot. I cannot do much right now, sorry.")
-
-
-def echo(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text=update.message.text)
-
-
-def caps(update, context):
-    text_caps = ' '.join(context.args).upper()
-    context.bot.send_message(chat_id=update.effective_chat.id, text=text_caps)
-
-
-def inline_caps(update, context):
-    query = update.inline_query.query
-    if not query:
-        return
-    results = [InlineQueryResultArticle(
-        id=query.upper(),
-        title=query.upper(),
-        input_message_content=InputTextMessageContent(query.upper())
-    )]
-    context.bot.answer_inline_query(update.inline_query.id, results)
-
-
-def get_name(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text=f"Hello, {update.message.text}!")
-    return ConversationHandler.END
-
-
-def ask_user_info(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Let's start with the name!")
-    # get_name_handler = MessageHandler(Filters.text & (~Filters.command), get_name)
-    # dispatcher.add_handler(get_name_handler)
-    return "get_name"
-
-
-def unknown(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I did not understand that command.")
-
-
 start_handler = CommandHandler('start', start)
 dispatcher.add_handler(start_handler)
 
-
 caps_handler = CommandHandler('caps', caps)
 dispatcher.add_handler(caps_handler)
+
+# get_person_info_handler = CommandHandler("show", get_person_info)
+# dispatcher.add_handler(get_person_info_handler)
 
 inline_caps_handler = InlineQueryHandler(inline_caps)
 dispatcher.add_handler(inline_caps_handler)
 
 ask_user_info_handler = ConversationHandler(
     entry_points=[
-        MessageHandler(Filters.command & Filters.regex("register"), ask_user_info)
+        # MessageHandler(Filters.command & Filters.regex("register"), ask_user_info)
+        CommandHandler("register", ask_user_info)
     ],
     states={
-        "get_name": [MessageHandler(Filters.text, get_name)]
+        "get_name": [MessageHandler(Filters.text & (~Filters.command), get_name)],
+        "get_age": [MessageHandler(Filters.text & (~Filters.command), get_age)],
+        "get_sex": [MessageHandler(Filters.text & (~Filters.command), get_sex)],
+        "get_height": [MessageHandler(Filters.text & (~Filters.command), get_height)],
+        "get_weight": [MessageHandler(Filters.text & (~Filters.command), get_weight)],
+        "get_person_info": [CommandHandler("show", get_person_info)]
     },
-    fallbacks=[]
+    fallbacks=[MessageHandler(Filters.command & (~Filters.regex("register")), fallback)],
+    allow_reentry=True
 )
 dispatcher.add_handler(ask_user_info_handler)
+
+# register_handler = MessageHandler(Filters.command & Filters.regex("register"), ask_user_info)
+# dispatcher.add_handler(register_handler)
 
 echo_handler = MessageHandler(Filters.text & (~Filters.command), echo)
 dispatcher.add_handler(echo_handler)
