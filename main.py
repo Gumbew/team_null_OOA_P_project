@@ -3,7 +3,8 @@ import logging
 import os
 
 from commands import start, caps, inline_caps, ask_user_info, get_name, get_age, get_sex, get_height, get_weight, \
-    show_info, fallback, register, echo, unknown
+    show_info, fallback, request_update, specify_update, update_name, update_age, update_height, update_weight, echo,\
+    unknown
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -27,7 +28,6 @@ dispatcher.add_handler(inline_caps_handler)
 
 ask_user_info_handler = ConversationHandler(
     entry_points=[
-        # MessageHandler(Filters.command & Filters.regex("register"), ask_user_info)
         CommandHandler("register", ask_user_info)
     ],
     states={
@@ -36,20 +36,28 @@ ask_user_info_handler = ConversationHandler(
         "get_sex": [MessageHandler(Filters.text & (~Filters.command), get_sex)],
         "get_height": [MessageHandler(Filters.text & (~Filters.command), get_height)],
         "get_weight": [MessageHandler(Filters.text & (~Filters.command), get_weight)],
-        # "insert_user": [get_person_info_handler]
     },
-    fallbacks=[MessageHandler(Filters.command & (~Filters.regex("register")), fallback)],
-    # allow_reentry=True
+    fallbacks=[MessageHandler(Filters.command, fallback)],
 )
 dispatcher.add_handler(ask_user_info_handler)
 
-register_handler = CommandHandler("register", register)
-dispatcher.add_handler(register_handler)
+update_info_handler = ConversationHandler(
+    entry_points=[
+        CommandHandler("update", request_update)
+    ],
+    states={
+        "specify_update": [MessageHandler(Filters.text, specify_update)],
+        "update_name": [MessageHandler(Filters.text, update_name)],
+        "update_age": [MessageHandler(Filters.text, update_age)],
+        "update_height": [MessageHandler(Filters.text, update_height)],
+        "update_weight": [MessageHandler(Filters.text, update_weight)]
+    },
+    fallbacks=[]
+)
+dispatcher.add_handler(update_info_handler)
 
 echo_handler = MessageHandler(Filters.text & (~Filters.command), echo)
 dispatcher.add_handler(echo_handler)
-
-
 
 # should always be last of the handlers in the code
 unknown_handler = MessageHandler(Filters.command, unknown)

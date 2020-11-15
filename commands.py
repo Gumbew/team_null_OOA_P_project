@@ -10,6 +10,19 @@ db = client['ooa']
 db['users'].drop()
 collection = db['users']
 
+button = KeyboardButton(text="Male")
+button2 = KeyboardButton(text="Female")
+sex_markup = ReplyKeyboardMarkup([[button, button2]], one_time_keyboard=True, resize_keyboard=True)
+
+button = KeyboardButton(text="Name")
+button2 = KeyboardButton(text="Age")
+button3 = KeyboardButton(text="Height")
+button4 = KeyboardButton(text="Weight")
+update_markup = ReplyKeyboardMarkup([[button, button2], [button3, button4]], one_time_keyboard=True,
+                                    resize_keyboard=True)
+
+remove_markup = ReplyKeyboardRemove()
+
 
 def start(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id,
@@ -65,13 +78,9 @@ def get_age(update, context):
                                      text=f"Are you sure your age is {ages[0]}? "
                                           f"Please double-check and enter your age once again:")
             return "get_age"
-        button = KeyboardButton(text="Male", callback_data="Male")
-        button2 = KeyboardButton(text="Female", callback_data="Female")
-        markup = ReplyKeyboardMarkup([[button, button2]], one_time_keyboard=True)
         context.bot.send_message(chat_id=update.effective_chat.id,
                                  text="Cool! Please let me know if you are male or female:",
-                                 reply_markup=markup)
-
+                                 reply_markup=sex_markup)
     return "get_sex"
 
 
@@ -83,7 +92,8 @@ def get_sex(update, context):
         return "get_sex"
 
     context.bot.send_message(chat_id=update.effective_chat.id,
-                             text="Great! Please also provide me with your height (in cm):")
+                             text="Great! Please also provide me with your height (in cm):",
+                             reply_markup=remove_markup)
     person["sex"] = sex
     return "get_height"
 
@@ -135,30 +145,31 @@ def get_weight(update, context):
 
     context.bot.send_message(chat_id=update.effective_chat.id, text="Thank you!")
     insert_user(update, context)
+    return ConversationHandler.END
+
+
+def calc_calories(person):
+    if person["sex"] == "Male":
+        k_1 = 88.36
+        k_2 = 13.4
+        k_3 = 4.8
+        k_4 = 5.7
+    else:
+        k_1 = 447.6
+        k_2 = 9.2
+        k_3 = 3.1
+        k_4 = 4.3
+    calories = 1.2 * (k_1 + k_2 * int(person["weight"]) + k_3 * int(person["height"]) - k_4 * int(person["age"]))
+    return int(round(calories, -2))
 
 
 def insert_user(update, context):
-    def calc_calories():
-        if person["sex"] == "M":
-            k_1 = 88.36
-            k_2 = 13.4
-            k_3 = 4.8
-            k_4 = 5.7
-        else:
-            k_1 = 447.6
-            k_2 = 9.2
-            k_3 = 3.1
-            k_4 = 4.3
-        calories = 1.2 * (k_1 + k_2 * int(person["weight"]) + k_3 * int(person["height"]) - k_4 * int(person["age"]))
-        return int(round(calories, -2))
-
     # add user to DB
     person["telegram_user_id"] = update.effective_user.id
     person["_id"] = collection.find().count() + 1
-    person["calories"] = calc_calories()
+    person["calories"] = calc_calories(person)
     collection.insert_one(person)
     context.bot.send_message(chat_id=update.effective_chat.id, text=f" Enter /show to see your info!")
-    return ConversationHandler.END
 
 
 def show_info(update, context):
@@ -180,7 +191,8 @@ Daily norm of calories - {person["calories"]}
 
 
 def fallback(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text=f"Exiting")
+    context.bot.send_message(chat_id=update.effective_chat.id, text=f"Exiting as registration is not complete. "
+                                                                    f"Please enter /register to fill out your info.")
     return ConversationHandler.END
 
 
@@ -193,16 +205,82 @@ def ask_user_info(update, context):
         return "get_name"
 
 
-def register(update, context):
-    # check if user is registered
-    if collection.find_one({"telegram_user_id": update.effective_user.id}):
-        context.bot.send_message(chat_id=update.effective_chat.id, text="You are already registered!")
+def request_update(update, context):
+    context.bot.send_message(chat_id=update.effective_chat.id, text="What do you want to update?",
+                             reply_markup=update_markup)
+    return "specify_update"
+
+
+def specify_update(update, context):
+    field = update.message.text
+    if field == "Name":
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Please enter your new, updated name:",
+                                 reply_markup=remove_markup)
+        return "update_name"
+    elif field == "Age":
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Please enter your new, updated age:",
+                                 reply_markup=remove_markup)
+        return "update_age"
+    elif field == "Height":
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Please enter your new, updated height:",
+                                 reply_markup=remove_markup)
+        return "update_height"
+    elif field == "Weight":
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Please enter your new, updated weight:",
+                                 reply_markup=remove_markup)
+        return "update_weight"
     else:
-        ask_user_info(update, context)
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Please choose what to update by pressing the button",
+                                 reply_markup=update_markup)
+        return "specify_update"
 
 
-def update_info(update, context):
-    pass
+def update_calories(update, context):
+    person = collection.find_one({"telegram_user_id": update.effective_user.id})
+    print(person, type(person))
+    collection.find_one_and_update({"telegram_user_id": update.effective_user.id},
+                                   {"$set": {"calories": calc_calories(person)}})
+
+
+def update_name(update, context):
+    collection.find_one_and_update({"telegram_user_id": update.effective_user.id},
+                                   {"$set": {"name": update.message.text}})
+    update_calories(update, context)
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Updated successfully!")
+    show_info(update, context)
+    return ConversationHandler.END
+
+
+def update_age(update, context):
+    collection.find_one_and_update({"telegram_user_id": update.effective_user.id},
+                                   {"$set": {"age": update.message.text}})
+    update_calories(update, context)
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Updated successfully!")
+    show_info(update, context)
+    return ConversationHandler.END
+
+
+def update_height(update, context):
+    collection.find_one_and_update({"telegram_user_id": update.effective_user.id},
+                                   {"$set": {"height": update.message.text}})
+    update_calories(update, context)
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Updated successfully!")
+    show_info(update, context)
+    return ConversationHandler.END
+
+
+def update_weight(update, context):
+    collection.find_one_and_update({"telegram_user_id": update.effective_user.id},
+                                   {"$set": {"weight": update.message.text}})
+    update_calories(update, context)
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Updated successfully!")
+    show_info(update, context)
+    return ConversationHandler.END
 
 
 def unknown(update, context):
