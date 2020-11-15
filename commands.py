@@ -242,7 +242,6 @@ def specify_update(update, context):
 
 def update_calories(update, context):
     person = collection.find_one({"telegram_user_id": update.effective_user.id})
-    print(person, type(person))
     collection.find_one_and_update({"telegram_user_id": update.effective_user.id},
                                    {"$set": {"calories": calc_calories(person)}})
 
