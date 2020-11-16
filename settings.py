@@ -1,3 +1,6 @@
+ELASTIC_HOST = "localhost"
+ELASTIC_PORT = 9200
+
 mappers = {
     "recipes": {
         "settings": {
