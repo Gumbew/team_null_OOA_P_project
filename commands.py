@@ -2,7 +2,6 @@ from telegram import InlineQueryResultArticle, InputTextMessageContent, ReplyKey
 from telegram.ext import ConversationHandler
 from telegram.keyboardbutton import KeyboardButton
 import re
-import pymongo
 from pymongo import MongoClient
 
 client = MongoClient('localhost', 27017)
@@ -12,16 +11,25 @@ collection = db['users']
 
 button = KeyboardButton(text="Male")
 button2 = KeyboardButton(text="Female")
+
 sex_markup = ReplyKeyboardMarkup([[button, button2]], one_time_keyboard=True, resize_keyboard=True)
 
 button = KeyboardButton(text="Name")
 button2 = KeyboardButton(text="Age")
 button3 = KeyboardButton(text="Height")
 button4 = KeyboardButton(text="Weight")
+
 update_markup = ReplyKeyboardMarkup([[button, button2], [button3, button4]], one_time_keyboard=True,
                                     resize_keyboard=True)
 
+button = KeyboardButton(text="Yes")
+button2 = KeyboardButton(text="No")
+
+remove_user_markup = ReplyKeyboardMarkup([[button, button2]], one_time_keyboard=True, resize_keyboard=True)
+
 remove_markup = ReplyKeyboardRemove()
+
+person = {}
 
 
 def start(update, context):
@@ -48,9 +56,6 @@ def inline_caps(update, context):
         input_message_content=InputTextMessageContent(query.upper())
     )]
     context.bot.answer_inline_query(update.inline_query.id, results)
-
-
-person = {}
 
 
 def get_name(update, context):
@@ -279,6 +284,31 @@ def update_weight(update, context):
     update_calories(update, context)
     context.bot.send_message(chat_id=update.effective_chat.id, text="Updated successfully!")
     show_info(update, context)
+    return ConversationHandler.END
+
+
+def restart(update, context):
+    context.bot.send_message(chat_id=update.effective_chat.id,
+                             text="Are you sure you want to remove your user profile?",
+                             reply_markup=remove_user_markup)
+    return "restart"
+
+
+def remove_user(update, context):
+    if update.message.text.lower() == "yes":
+        person = collection.find_one({"telegram_user_id": update.effective_user.id})
+        collection.remove(person)
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Done! To register new profile, please enter /register .",
+                                 reply_markup=remove_markup)
+    elif update.message.text.lower() == "no":
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Ok :) profile is not removed.",
+                                 reply_markup=remove_markup)
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Did not understand that. Please choose Yes or No option.")
+        return "restart"
     return ConversationHandler.END
 
 

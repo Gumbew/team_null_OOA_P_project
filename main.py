@@ -4,7 +4,7 @@ import os
 
 from commands import start, caps, inline_caps, ask_user_info, get_name, get_age, get_sex, get_height, get_weight, \
     show_info, fallback, request_update, specify_update, update_name, update_age, update_height, update_weight, echo,\
-    unknown
+    restart, remove_user, unknown
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -55,6 +55,17 @@ update_info_handler = ConversationHandler(
     fallbacks=[]
 )
 dispatcher.add_handler(update_info_handler)
+
+remove_user_handler = ConversationHandler(
+    entry_points=[
+        CommandHandler("restart", restart)
+    ],
+    states={
+        "restart": [MessageHandler(Filters.text, remove_user)]
+    },
+    fallbacks=[]
+)
+dispatcher.add_handler(remove_user_handler)
 
 echo_handler = MessageHandler(Filters.text & (~Filters.command), echo)
 dispatcher.add_handler(echo_handler)
