@@ -288,10 +288,17 @@ def update_weight(update, context):
 
 
 def restart(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id,
-                             text="Are you sure you want to remove your user profile?",
-                             reply_markup=remove_user_markup)
-    return "restart"
+    person = collection.find_one({"telegram_user_id": update.effective_user.id})
+    if person:
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Are you sure you want to remove your user profile?",
+                                 reply_markup=remove_user_markup)
+        return "restart"
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="It looks like you do not have a profile yet! To create it, "
+                                      "please enter /register .")
+        return ConversationHandler.END
 
 
 def remove_user(update, context):
