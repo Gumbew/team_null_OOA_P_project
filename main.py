@@ -4,7 +4,7 @@ import os
 
 from commands import start, ask_user_info, get_name, get_age, get_sex, get_height, get_weight, show_info, fallback, \
     request_update, specify_update, update_name, update_age, update_height, update_weight,  restart, remove_user, \
-    unknown
+    unknown, show_help_info
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -13,6 +13,9 @@ TOKEN = os.environ.get("TOKEN")
 
 updater = Updater(token=TOKEN, use_context=True)
 dispatcher = updater.dispatcher
+
+help_handler = CommandHandler('help', show_help_info)
+dispatcher.add_handler(help_handler)
 
 start_handler = CommandHandler('start', start)
 dispatcher.add_handler(start_handler)

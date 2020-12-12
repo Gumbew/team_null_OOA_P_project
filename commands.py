@@ -31,10 +31,25 @@ remove_markup = ReplyKeyboardRemove()
 
 person = {}
 
+help_list = """
+/start - start a bot
+/register - create your profile
+/show - check your profile information
+/update - update your profile information
+/restart - remove your profile to create a new one
+/help - see help information
+"""
+
+
+def show_help_info(update, context):
+    context.bot.send_message(chat_id=update.effective_chat.id,
+                             text=f"Here is the list of available commands:\n{help_list}")
+
 
 def start(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id,
-                             text="Hello, this is EatHealthyBot. I cannot do much right now, sorry.")
+                             text=f"Hello, this is EatHealthyBot. I cannot do much right now, sorry.\n"
+                                  f"However, here is the list of commands that you may use:\n{help_list}")
 
 
 def get_name(update, context):
