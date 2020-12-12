@@ -37,27 +37,6 @@ def start(update, context):
                              text="Hello, this is EatHealthyBot. I cannot do much right now, sorry.")
 
 
-def echo(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text=update.message.text)
-
-
-def caps(update, context):
-    text_caps = ' '.join(context.args).upper()
-    context.bot.send_message(chat_id=update.effective_chat.id, text=text_caps)
-
-
-def inline_caps(update, context):
-    query = update.inline_query.query
-    if not query:
-        return
-    results = [InlineQueryResultArticle(
-        id=query.upper(),
-        title=query.upper(),
-        input_message_content=InputTextMessageContent(query.upper())
-    )]
-    context.bot.answer_inline_query(update.inline_query.id, results)
-
-
 def get_name(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id, text=f"Hello, {update.message.text}! How old are you?")
     person["name"] = update.message.text
@@ -320,4 +299,4 @@ def remove_user(update, context):
 
 
 def unknown(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I did not understand that command.")
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I did not understand that message.")

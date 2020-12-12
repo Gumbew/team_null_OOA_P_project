@@ -2,9 +2,9 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Inlin
 import logging
 import os
 
-from commands import start, caps, inline_caps, ask_user_info, get_name, get_age, get_sex, get_height, get_weight, \
-    show_info, fallback, request_update, specify_update, update_name, update_age, update_height, update_weight, echo,\
-    restart, remove_user, unknown
+from commands import start, ask_user_info, get_name, get_age, get_sex, get_height, get_weight, show_info, fallback, \
+    request_update, specify_update, update_name, update_age, update_height, update_weight,  restart, remove_user, \
+    unknown
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -17,14 +17,8 @@ dispatcher = updater.dispatcher
 start_handler = CommandHandler('start', start)
 dispatcher.add_handler(start_handler)
 
-caps_handler = CommandHandler('caps', caps)
-dispatcher.add_handler(caps_handler)
-
 get_person_info_handler = CommandHandler("show", show_info)
 dispatcher.add_handler(get_person_info_handler)
-
-inline_caps_handler = InlineQueryHandler(inline_caps)
-dispatcher.add_handler(inline_caps_handler)
 
 ask_user_info_handler = ConversationHandler(
     entry_points=[
@@ -67,11 +61,8 @@ remove_user_handler = ConversationHandler(
 )
 dispatcher.add_handler(remove_user_handler)
 
-echo_handler = MessageHandler(Filters.text & (~Filters.command), echo)
-dispatcher.add_handler(echo_handler)
-
 # should always be last of the handlers in the code
-unknown_handler = MessageHandler(Filters.command, unknown)
+unknown_handler = MessageHandler(Filters.text, unknown)
 dispatcher.add_handler(unknown_handler)
 
 updater.start_polling()
