@@ -40,6 +40,6 @@ class ElasticClient(object):
         return res
 
 
-el = ElasticClient()
-
-pprint.pprint(el.recipe_search("carrot"))
+# el = ElasticClient()
+# 
+# pprint.pprint(el.recipe_search("carrot"))
