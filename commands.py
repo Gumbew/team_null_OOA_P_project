@@ -313,5 +313,15 @@ def remove_user(update, context):
     return ConversationHandler.END
 
 
+def create_menu(update, context):
+    person = collection.find_one({"telegram_user_id": update.effective_user.id})
+    if person:
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                             text="You successfully added a menu!")
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="There is no profile for the menu! Enter /register to create one.")
+
+
 def unknown(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I did not understand that message.")

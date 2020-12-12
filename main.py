@@ -4,7 +4,7 @@ import os
 
 from commands import start, ask_user_info, get_name, get_age, get_sex, get_height, get_weight, show_info, fallback, \
     request_update, specify_update, update_name, update_age, update_height, update_weight,  restart, remove_user, \
-    unknown, show_help_info
+    unknown, show_help_info, create_menu
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -63,6 +63,9 @@ remove_user_handler = ConversationHandler(
     fallbacks=[]
 )
 dispatcher.add_handler(remove_user_handler)
+
+add_menu_handler = CommandHandler('add', create_menu)
+dispatcher.add_handler(add_menu_handler)
 
 # should always be last of the handlers in the code
 unknown_handler = MessageHandler(Filters.text, unknown)
