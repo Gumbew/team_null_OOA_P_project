@@ -3,9 +3,12 @@ from telegram.ext import ConversationHandler
 from telegram.keyboardbutton import KeyboardButton
 import re
 from pymongo import MongoClient
+from utils.elastic_utils import ElasticClient
 
-client = MongoClient('localhost', 27017)
-db = client['ooa']
+elastic_client = ElasticClient()
+
+mongo_client = MongoClient('localhost', 27017)
+db = mongo_client['ooa']
 db['users'].drop()
 collection = db['users']
 
@@ -321,6 +324,43 @@ def create_menu(update, context):
     else:
         context.bot.send_message(chat_id=update.effective_chat.id,
                                  text="There is no profile for the menu! Enter /register to create one.")
+
+
+def find_meal(update, context):
+    def get_recipe_info(index, recipe):
+        recipe_info = f"""
+{index}
+
+Name: {recipe["name"]}
+
+Duration: {recipe["minutes"]} minutes
+
+Ingredients:"""
+        for ingredient in recipe["ingredients"].strip('][').split("', '"):
+            recipe_info += f"""
+        - {ingredient.strip("'")}"""
+        recipe_info += f"""
+{recipe["ingredients"]}
+Nutrition:"""
+        for nutrition in recipe["nutrition"].strip('][').split(", "):
+            recipe_info += f"""
+- {nutrition.strip("'")}"""
+        recipe_info += f"""
+{recipe["nutrition"]}
+Steps:"""
+        for step in recipe["steps"].strip('][').split("', '"):
+            recipe_info += f"""
+- {step.strip("'")}"""
+        recipe_info += f"\n{recipe['steps']}\n"
+        return recipe_info
+    recipe_name = " ".join(context.args)
+    found_recipes = elastic_client.recipe_search(recipe_name)
+    response = f"Found {len(found_recipes)} recipes!"
+    for index, recipe in enumerate(found_recipes):
+        response += get_recipe_info(index, recipe)
+    for i in range(0, len(response), 4096):
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text=response[i:i+4096])
 
 
 def unknown(update, context):
