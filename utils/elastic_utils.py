@@ -36,10 +36,20 @@ class ElasticClient(object):
                 }
             }
         }
-        res = self._conn.search(index="recipes", body=search_query)
-        return res
+        res = self._conn.search(index="recipes", body=search_query)["hits"]["hits"]
+        found_recipes = [
+            {
+                "ingredients": recipe["_source"]["ingredients"],
+                "minutes": recipe["_source"]["minutes"],
+                "name": recipe["_source"]["name"],
+                "nutrition": recipe["_source"]["nutrition"],
+                "steps": recipe["_source"]["steps"],
+            }
+            for recipe in res
+        ]
+        return found_recipes
 
 
 # el = ElasticClient()
-# 
+#
 # pprint.pprint(el.recipe_search("carrot"))
