@@ -4,6 +4,7 @@ from telegram.keyboardbutton import KeyboardButton
 import re
 from pymongo import MongoClient
 from utils.elastic_utils import ElasticClient
+from time import sleep
 
 elastic_client = ElasticClient()
 
@@ -41,6 +42,7 @@ help_list = """
 /update - update your profile information
 /restart - remove your profile to create a new one
 /help - see help information
+/find <recipe name> - find recipes by entered name
 """
 
 
@@ -320,7 +322,7 @@ def create_menu(update, context):
     person = collection.find_one({"telegram_user_id": update.effective_user.id})
     if person:
         context.bot.send_message(chat_id=update.effective_chat.id,
-                             text="You successfully added a menu!")
+                                 text="You successfully added a menu!")
     else:
         context.bot.send_message(chat_id=update.effective_chat.id,
                                  text="There is no profile for the menu! Enter /register to create one.")
@@ -328,39 +330,50 @@ def create_menu(update, context):
 
 def find_meal(update, context):
     def get_recipe_info(index, recipe):
+        some_emoji = u'\U0001F550'
         recipe_info = f"""
-{index}
+*{index + 1}*
 
-Name: {recipe["name"]}
+*{recipe["name"].capitalize()}*
 
-Duration: {recipe["minutes"]} minutes
+{some_emoji}"""
+        recipe_info += f""" {recipe["minutes"]} minutes
 
-Ingredients:"""
+*Ingredients*:"""
         for ingredient in recipe["ingredients"].strip('][').split("', '"):
-            recipe_info += f"""
-        - {ingredient.strip("'")}"""
+            recipe_info += re.escape(f"""
+        - {ingredient.strip("'")}""")
         recipe_info += f"""
-{recipe["ingredients"]}
-Nutrition:"""
+        
+*Nutrition*:"""
         for nutrition in recipe["nutrition"].strip('][').split(", "):
-            recipe_info += f"""
-- {nutrition.strip("'")}"""
+            recipe_info += re.escape(f"""
+        - {nutrition.strip("'")}""")
         recipe_info += f"""
-{recipe["nutrition"]}
-Steps:"""
+        
+*Steps*:"""
         for step in recipe["steps"].strip('][').split("', '"):
-            recipe_info += f"""
-- {step.strip("'")}"""
-        recipe_info += f"\n{recipe['steps']}\n"
+            recipe_info += re.escape(f"""
+        - {step.strip("'").capitalize()}""")
+        recipe_info += f"\n"
         return recipe_info
+
     recipe_name = " ".join(context.args)
     found_recipes = elastic_client.recipe_search(recipe_name)
-    response = f"Found {len(found_recipes)} recipes!"
+    response = f"*Found {len(found_recipes)} recipes*\!"
+    context.bot.send_message(chat_id=update.effective_chat.id,
+                             text=response,
+                             parse_mode="MarkdownV2")
+    sleep(1)
     for index, recipe in enumerate(found_recipes):
-        response += get_recipe_info(index, recipe)
-    for i in range(0, len(response), 4096):
+        response = get_recipe_info(index, recipe)
         context.bot.send_message(chat_id=update.effective_chat.id,
-                                 text=response[i:i+4096])
+                                 text=response,
+                                 parse_mode="MarkdownV2")
+        sleep(1)
+    # for i in range(0, len(response), 4096):
+    #     context.bot.send_message(chat_id=update.effective_chat.id,
+    #                              text=response[i:i+4096])
 
 
 def unknown(update, context):
