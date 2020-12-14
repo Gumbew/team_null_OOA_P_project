@@ -17,6 +17,7 @@ mappers = {
                     "submitted": {"type": "date"},
                     "tags": {"type": "text"},
                     "nutrition": {"type": "text"},
+                    "meal_nutrition": {"type": "float"},
                     "n_steps": {"type": "integer"},
                     "steps": {"type": "text"},
                     "description": {"type": "text"},
