@@ -10,7 +10,7 @@ elastic_client = ElasticClient()
 
 mongo_client = MongoClient('localhost', 27017)
 db = mongo_client['ooa']
-db['users'].drop()
+# db['users'].drop()
 collection = db['users']
 
 button = KeyboardButton(text="Male")
@@ -356,6 +356,9 @@ def create_menu(update, context):
         # context.bot.send_message(chat_id=update.effective_chat.id,
         #                          text="")
         menu = elastic_client.get_daily_menu(person["calories"])
+        person["menus"].append(menu)
+        collection.find_one_and_update({"telegram_user_id": update.effective_user.id},
+                                       {"$set": {"menus": person["menus"]}})
         index = "Breakfast"
         for meal in menu:
             context.bot.send_message(chat_id=update.effective_chat.id,
@@ -375,6 +378,13 @@ def create_menu(update, context):
 def find_meal(update, context):
     recipe_name = " ".join(context.args)
     found_recipes = elastic_client.recipe_fuzzy_search_by_name(recipe_name)
+    person = collection.find_one({"telegram_user_id": update.effective_user.id})
+    person["recipes"].append({
+        "keyword": recipe_name,
+        "results": found_recipes
+    })
+    collection.find_one_and_update({"telegram_user_id": update.effective_user.id},
+                                   {"$set": {"recipes": person["recipes"]}})
     response = f"*Found {len(found_recipes)} recipes*\!"
     context.bot.send_message(chat_id=update.effective_chat.id,
                              text=response,
