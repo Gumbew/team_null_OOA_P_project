@@ -172,6 +172,8 @@ def insert_user(update, context):
     person["telegram_user_id"] = update.effective_user.id
     person["_id"] = collection.find().count() + 1
     person["calories"] = calc_calories(person)
+    person["menus"] = []
+    person["recipes"] = []
     collection.insert_one(person)
     context.bot.send_message(chat_id=update.effective_chat.id, text=f" Enter /show to see your info!")
 
@@ -318,48 +320,61 @@ def remove_user(update, context):
     return ConversationHandler.END
 
 
+def get_recipe_info(index, recipe):
+    some_emoji = u'\U0001F550'
+    recipe_info = f"""
+*{index}*
+
+*{re.escape(recipe["name"].capitalize())}*
+
+{some_emoji}"""
+    recipe_info += f""" {recipe["minutes"]} minutes
+
+*Ingredients*:"""
+    for ingredient in recipe["ingredients"].strip('][').split("', '"):
+        recipe_info += re.escape(f"""
+        - {ingredient.strip("'")}""")
+    recipe_info += """
+
+*Nutrition*:"""
+    recipe_info += re.escape(f"{recipe['meal_nutrition']}")
+    recipe_info += """
+
+*Steps*:"""
+    for step in recipe["steps"].strip('][').split("', '"):
+        recipe_info += re.escape(f"""
+        - {step.strip("'").capitalize()}""")
+    recipe_info += f"\n"
+    return recipe_info
+
+
 def create_menu(update, context):
     person = collection.find_one({"telegram_user_id": update.effective_user.id})
     if person:
         context.bot.send_message(chat_id=update.effective_chat.id,
                                  text="You successfully added a menu!")
+        # context.bot.send_message(chat_id=update.effective_chat.id,
+        #                          text="")
+        menu = elastic_client.get_daily_menu(person["calories"])
+        index = "Breakfast"
+        for meal in menu:
+            context.bot.send_message(chat_id=update.effective_chat.id,
+                                     text=get_recipe_info(index, meal),
+                                     parse_mode="MarkdownV2")
+            if index == "Breakfast":
+                index = "Dinner"
+            elif index == "Dinner":
+                index = "Supper"
+            else:
+                index = "Breakfast"
     else:
         context.bot.send_message(chat_id=update.effective_chat.id,
                                  text="There is no profile for the menu! Enter /register to create one.")
 
 
 def find_meal(update, context):
-    def get_recipe_info(index, recipe):
-        some_emoji = u'\U0001F550'
-        recipe_info = f"""
-*{index + 1}*
-
-*{recipe["name"].capitalize()}*
-
-{some_emoji}"""
-        recipe_info += f""" {recipe["minutes"]} minutes
-
-*Ingredients*:"""
-        for ingredient in recipe["ingredients"].strip('][').split("', '"):
-            recipe_info += re.escape(f"""
-        - {ingredient.strip("'")}""")
-        recipe_info += f"""
-        
-*Nutrition*:"""
-        for nutrition in recipe["nutrition"].strip('][').split(", "):
-            recipe_info += re.escape(f"""
-        - {nutrition.strip("'")}""")
-        recipe_info += f"""
-        
-*Steps*:"""
-        for step in recipe["steps"].strip('][').split("', '"):
-            recipe_info += re.escape(f"""
-        - {step.strip("'").capitalize()}""")
-        recipe_info += f"\n"
-        return recipe_info
-
     recipe_name = " ".join(context.args)
-    found_recipes = elastic_client.recipe_search(recipe_name)
+    found_recipes = elastic_client.recipe_fuzzy_search_by_name(recipe_name)
     response = f"*Found {len(found_recipes)} recipes*\!"
     context.bot.send_message(chat_id=update.effective_chat.id,
                              text=response,
