@@ -31,6 +31,11 @@ button2 = KeyboardButton(text="No")
 
 remove_user_markup = ReplyKeyboardMarkup([[button, button2]], one_time_keyboard=True, resize_keyboard=True)
 
+button = KeyboardButton(text="Daily")
+button2 = KeyboardButton(text="Weekly")
+
+add_menu_markup = ReplyKeyboardMarkup([[button, button2]], one_time_keyboard=True, resize_keyboard=True)
+
 remove_markup = ReplyKeyboardRemove()
 
 person = {}
@@ -172,7 +177,10 @@ def insert_user(update, context):
     person["telegram_user_id"] = update.effective_user.id
     person["_id"] = collection.find().count() + 1
     person["calories"] = calc_calories(person)
-    person["menus"] = []
+    person["menus"] = {
+        "daily": [],
+        "weekly": []
+    }
     person["recipes"] = []
     collection.insert_one(person)
     context.bot.send_message(chat_id=update.effective_chat.id, text=f" Enter /show to see your info!")
@@ -336,7 +344,7 @@ def get_recipe_info(index, recipe):
         - {ingredient.strip("'")}""")
     recipe_info += """
 
-*Nutrition*:"""
+*Nutrition*: """
     recipe_info += re.escape(f"{recipe['meal_nutrition']}")
     recipe_info += """
 
@@ -348,15 +356,38 @@ def get_recipe_info(index, recipe):
     return recipe_info
 
 
-def create_menu(update, context):
+def add_menu(update, context):
     person = collection.find_one({"telegram_user_id": update.effective_user.id})
     if person:
         context.bot.send_message(chat_id=update.effective_chat.id,
-                                 text="You successfully added a menu!")
-        # context.bot.send_message(chat_id=update.effective_chat.id,
-        #                          text="")
+                                 text="Do you want to create menu for a day or for a week?",
+                                 reply_markup=add_menu_markup)
+        return "create"
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="There is no profile for the menu! Enter /register to create one.")
+        return ConversationHandler.END
+
+
+def create_menu(update, context):
+    option = update.message.text
+    print(option)
+    if option == "Daily":
+        days = 1
+    elif option == "Weekly":
+        days = 7
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Please press the button - Daily or Weekly :)",
+                                 reply_markup=add_menu_markup)
+        return "create"
+    person = collection.find_one({"telegram_user_id": update.effective_user.id})
+    context.bot.send_message(chat_id=update.effective_chat.id,
+                             text="You successfully added a menu!")
+    for day in range(days):
+        sleep(1)
         menu = elastic_client.get_daily_menu(person["calories"])
-        person["menus"].append(menu)
+        person["menus"][option.lower()].append(menu)
         collection.find_one_and_update({"telegram_user_id": update.effective_user.id},
                                        {"$set": {"menus": person["menus"]}})
         index = "Breakfast"
@@ -364,15 +395,14 @@ def create_menu(update, context):
             context.bot.send_message(chat_id=update.effective_chat.id,
                                      text=get_recipe_info(index, meal),
                                      parse_mode="MarkdownV2")
+            sleep(1)
             if index == "Breakfast":
                 index = "Dinner"
             elif index == "Dinner":
                 index = "Supper"
             else:
                 index = "Breakfast"
-    else:
-        context.bot.send_message(chat_id=update.effective_chat.id,
-                                 text="There is no profile for the menu! Enter /register to create one.")
+    return ConversationHandler.END
 
 
 def find_meal(update, context):
@@ -391,7 +421,7 @@ def find_meal(update, context):
                              parse_mode="MarkdownV2")
     sleep(1)
     for index, recipe in enumerate(found_recipes):
-        response = get_recipe_info(index, recipe)
+        response = get_recipe_info(str(index+1), recipe)
         context.bot.send_message(chat_id=update.effective_chat.id,
                                  text=response,
                                  parse_mode="MarkdownV2")

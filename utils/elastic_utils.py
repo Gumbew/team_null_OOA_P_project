@@ -94,9 +94,7 @@ class ElasticClient(object):
                     )[0]
 
             )
-        for meal in menu:
-            for key in meal:
-                print(key, meal[key])
+
         menu = [
             {
                 "name": meal["name"],
