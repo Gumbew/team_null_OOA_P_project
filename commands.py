@@ -341,7 +341,7 @@ def get_shortened_recipe_info(index, recipe):
     recipe_info += """
 
 *Nutrition*: """
-    recipe_info += re.escape(f"{recipe['meal_nutrition']} calories")
+    recipe_info += re.escape(f"{round(recipe['meal_nutrition'])} calories")
     recipe_info += f"\n"
 
     return recipe_info
@@ -363,7 +363,7 @@ def get_recipe_info(index, recipe):
     recipe_info += """
 
 *Nutrition*: """
-    recipe_info += re.escape(f"{recipe['meal_nutrition']} calories")
+    recipe_info += re.escape(f"{round(recipe['meal_nutrition'])} calories")
     recipe_info += """
 
 *Steps*:"""
