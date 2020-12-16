@@ -4,7 +4,8 @@ import os
 
 from commands import start, ask_user_info, get_name, get_age, get_sex, get_height, get_weight, show_info, fallback, \
     request_update, specify_update, update_name, update_age, update_height, update_weight,  restart, remove_user, \
-    unknown, show_help_info, create_menu, find_meal
+    unknown, show_help_info, create_menu, find_meal, add_menu, check_recipes, view_menus, view_specified_type_menu, \
+    view_specified_menu
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -49,7 +50,9 @@ update_info_handler = ConversationHandler(
         "update_height": [MessageHandler(Filters.text, update_height)],
         "update_weight": [MessageHandler(Filters.text, update_weight)]
     },
-    fallbacks=[]
+    fallbacks=[
+        MessageHandler(Filters.command, fallback)
+    ]
 )
 dispatcher.add_handler(update_info_handler)
 
@@ -60,15 +63,44 @@ remove_user_handler = ConversationHandler(
     states={
         "restart": [MessageHandler(Filters.text, remove_user)]
     },
-    fallbacks=[]
+    fallbacks=[
+        MessageHandler(Filters.command, fallback)
+    ]
 )
 dispatcher.add_handler(remove_user_handler)
 
-add_menu_handler = CommandHandler('add', create_menu)
+add_menu_handler = ConversationHandler(
+    entry_points=[
+        CommandHandler('add', add_menu)
+    ],
+    states={
+        "create": [MessageHandler(Filters.text, create_menu)]
+    },
+    fallbacks=[
+        MessageHandler(Filters.command, fallback)
+    ]
+)
 dispatcher.add_handler(add_menu_handler)
 
 find_meal_handler = CommandHandler('find', find_meal)
 dispatcher.add_handler(find_meal_handler)
+
+check_recipes_handler = CommandHandler('check', check_recipes)
+dispatcher.add_handler(check_recipes_handler)
+
+view_menus_handler = ConversationHandler(
+    entry_points=[
+        CommandHandler('view', view_menus)
+    ],
+    states={
+        "view_type": [MessageHandler(Filters.text, view_specified_type_menu)],
+        "view_menu": [MessageHandler(Filters.text, view_specified_menu)]
+    },
+    fallbacks=[
+        MessageHandler(Filters.command, fallback)
+    ]
+)
+dispatcher.add_handler(view_menus_handler)
 
 # should always be last of the handlers in the code
 unknown_handler = MessageHandler(Filters.text, unknown)

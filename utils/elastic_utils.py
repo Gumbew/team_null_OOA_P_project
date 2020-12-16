@@ -44,7 +44,7 @@ class ElasticClient(object):
                 "ingredients": recipe["_source"]["ingredients"],
                 "minutes": recipe["_source"]["minutes"],
                 "name": recipe["_source"]["name"],
-                "nutrition": recipe["_source"]["nutrition"],
+                "meal_nutrition": recipe["_source"]["meal_nutrition"],
                 "steps": recipe["_source"]["steps"],
             }
             for recipe in res
@@ -90,10 +90,21 @@ class ElasticClient(object):
             menu.append(
                     self.search_recipes(
                         Range(**{"meal_nutrition": {'gte': meal[0], 'lte': meal[1]}}),
-                        random_meal= True,
+                        random_meal=True,
                     )[0]
 
             )
+
+        menu = [
+            {
+                "name": meal["name"],
+                "minutes": meal["minutes"],
+                "steps": meal["steps"],
+                "ingredients": meal["ingredients"],
+                "meal_nutrition": meal["meal_nutrition"]
+            }
+            for meal in menu
+        ]
 
         return menu
 

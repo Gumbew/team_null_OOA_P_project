@@ -10,7 +10,7 @@ elastic_client = ElasticClient()
 
 mongo_client = MongoClient('localhost', 27017)
 db = mongo_client['ooa']
-db['users'].drop()
+# db['users'].drop()
 collection = db['users']
 
 button = KeyboardButton(text="Male")
@@ -31,7 +31,15 @@ button2 = KeyboardButton(text="No")
 
 remove_user_markup = ReplyKeyboardMarkup([[button, button2]], one_time_keyboard=True, resize_keyboard=True)
 
+button = KeyboardButton(text="Daily")
+button2 = KeyboardButton(text="Weekly")
+
+menu_types_markup = ReplyKeyboardMarkup([[button, button2]], one_time_keyboard=True, resize_keyboard=True)
+
 remove_markup = ReplyKeyboardRemove()
+
+clock_emoji = u'\U0001F550'
+menu_option = ""
 
 person = {}
 
@@ -172,6 +180,11 @@ def insert_user(update, context):
     person["telegram_user_id"] = update.effective_user.id
     person["_id"] = collection.find().count() + 1
     person["calories"] = calc_calories(person)
+    person["menus"] = {
+        "daily": [],
+        "weekly": []
+    }
+    person["recipes"] = []
     collection.insert_one(person)
     context.bot.send_message(chat_id=update.effective_chat.id, text=f" Enter /show to see your info!")
 
@@ -318,55 +331,157 @@ def remove_user(update, context):
     return ConversationHandler.END
 
 
-def create_menu(update, context):
+def get_shortened_recipe_info(index, recipe):
+    recipe_info = f"""
+*{index}*
+
+*{re.escape(recipe["name"].capitalize())}*
+
+{clock_emoji}"""
+    recipe_info += f""" {recipe['minutes']} minutes"""
+    recipe_info += """
+
+*Nutrition*: """
+    recipe_info += re.escape(f"{round(recipe['meal_nutrition'])} calories")
+    recipe_info += f"\n"
+
+    return recipe_info
+
+
+def get_recipe_info(index, recipe):
+    recipe_info = f"""
+*{index}*
+
+*{re.escape(recipe["name"].capitalize())}*
+
+{clock_emoji}"""
+    recipe_info += f""" {recipe["minutes"]} minutes
+
+*Ingredients*:"""
+    for ingredient in recipe["ingredients"].strip('][').split("', '"):
+        recipe_info += re.escape(f"""
+        - {ingredient.strip("'")}""")
+    recipe_info += """
+
+*Nutrition*: """
+    recipe_info += re.escape(f"{round(recipe['meal_nutrition'])} calories")
+    recipe_info += """
+
+*Steps*:"""
+    for step in recipe["steps"].strip('][').split("', '"):
+        recipe_info += re.escape(f"""
+        - {step.strip("'").capitalize().replace('"', '')}""")
+    recipe_info += f"\n"
+    return recipe_info
+
+
+def get_menu_info(days, menu, func):
+    response = []
+    global menu_option
+    for day in range(days):
+        result = ""
+        if menu_option == "weekly":
+            if day == 0:
+                day_name = "Monday"
+            elif day == 1:
+                day_name = "Tuesday"
+            elif day == 2:
+                day_name = "Wednesday"
+            elif day == 3:
+                day_name = "Thursday"
+            elif day == 4:
+                day_name = "Friday"
+            elif day == 5:
+                day_name = "Saturday"
+            else:
+                day_name = "Sunday"
+            # context.bot.send_message(chat_id=update.effective_chat.id,
+            #                          text=f"*Menu for {day_name}:*",
+            #                          parse_mode="MarkdownV2")
+            result += f"""
+    *Menu for {day_name}:*          
+                """
+
+        index = "Breakfast"
+        for meal in menu:
+            # context.bot.send_message(chat_id=update.effective_chat.id,
+            #                          text=get_shortened_recipe_info(index, meal),
+            #                          parse_mode="MarkdownV2")
+            result += f"""
+    {func(index, meal)}
+                """
+            # sleep(1)
+            if index == "Breakfast":
+                index = "Dinner"
+            elif index == "Dinner":
+                index = "Supper"
+            else:
+                index = "Breakfast"
+        response.append(result)
+    return response
+
+
+def add_menu(update, context):
     person = collection.find_one({"telegram_user_id": update.effective_user.id})
     if person:
         context.bot.send_message(chat_id=update.effective_chat.id,
-                                 text="You successfully added a menu!")
+                                 text="Do you want to create menu for a day or for a week?",
+                                 reply_markup=menu_types_markup)
+        return "create"
     else:
         context.bot.send_message(chat_id=update.effective_chat.id,
                                  text="There is no profile for the menu! Enter /register to create one.")
+        return ConversationHandler.END
+
+
+def create_menu(update, context):
+    global menu_option
+    menu_option = update.message.text.lower()
+    if menu_option == "daily":
+        days = 1
+    elif menu_option == "weekly":
+        days = 7
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Please press the button - Daily or Weekly :)",
+                                 reply_markup=menu_types_markup)
+        return "create"
+    person = collection.find_one({"telegram_user_id": update.effective_user.id})
+    context.bot.send_message(chat_id=update.effective_chat.id,
+                             text="You successfully added a menu!")
+
+    menu = elastic_client.get_daily_menu(person["calories"])
+    person["menus"][menu_option.lower()].append(menu)
+    collection.find_one_and_update({"telegram_user_id": update.effective_user.id},
+                                   {"$set": {
+                                       "menus": person["menus"]
+                                   }})
+
+    for meal in get_menu_info(days, menu, get_shortened_recipe_info):
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text=meal,
+                                 parse_mode="MarkdownV2")
+
+    return ConversationHandler.END
 
 
 def find_meal(update, context):
-    def get_recipe_info(index, recipe):
-        some_emoji = u'\U0001F550'
-        recipe_info = f"""
-*{index + 1}*
-
-*{recipe["name"].capitalize()}*
-
-{some_emoji}"""
-        recipe_info += f""" {recipe["minutes"]} minutes
-
-*Ingredients*:"""
-        for ingredient in recipe["ingredients"].strip('][').split("', '"):
-            recipe_info += re.escape(f"""
-        - {ingredient.strip("'")}""")
-        recipe_info += f"""
-        
-*Nutrition*:"""
-        for nutrition in recipe["nutrition"].strip('][').split(", "):
-            recipe_info += re.escape(f"""
-        - {nutrition.strip("'")}""")
-        recipe_info += f"""
-        
-*Steps*:"""
-        for step in recipe["steps"].strip('][').split("', '"):
-            recipe_info += re.escape(f"""
-        - {step.strip("'").capitalize()}""")
-        recipe_info += f"\n"
-        return recipe_info
-
     recipe_name = " ".join(context.args)
-    found_recipes = elastic_client.recipe_search(recipe_name)
+    found_recipes = elastic_client.recipe_fuzzy_search_by_name(recipe_name)
+    person = collection.find_one({"telegram_user_id": update.effective_user.id})
+    person["recipes"].append({
+        "keyword": recipe_name,
+        "results": found_recipes
+    })
+    collection.find_one_and_update({"telegram_user_id": update.effective_user.id},
+                                   {"$set": {"recipes": person["recipes"]}})
     response = f"*Found {len(found_recipes)} recipes*\!"
     context.bot.send_message(chat_id=update.effective_chat.id,
                              text=response,
                              parse_mode="MarkdownV2")
     sleep(1)
     for index, recipe in enumerate(found_recipes):
-        response = get_recipe_info(index, recipe)
+        response = get_shortened_recipe_info(str(index+1), recipe)
         context.bot.send_message(chat_id=update.effective_chat.id,
                                  text=response,
                                  parse_mode="MarkdownV2")
@@ -374,6 +489,116 @@ def find_meal(update, context):
     # for i in range(0, len(response), 4096):
     #     context.bot.send_message(chat_id=update.effective_chat.id,
     #                              text=response[i:i+4096])
+
+
+def check_recipes(update, context):
+    person = collection.find_one({"telegram_user_id": update.effective_user.id})
+    response = ""
+    if person:
+        if context.args:
+            specified_recipe_name = " ".join(context.args)
+            correct_name = False
+            found_recipes = person["recipes"]
+            for recipe in found_recipes:
+                if specified_recipe_name == recipe['keyword']:
+                    correct_name = True
+                    response += f"Here are the recipes you searched for *{specified_recipe_name}*:"
+                    context.bot.send_message(chat_id=update.effective_chat.id,
+                                             text=response,
+                                             parse_mode="MarkdownV2")
+                    for index, result in enumerate(recipe['results']):
+                        response = get_recipe_info(str(index+1), result)
+                        context.bot.send_message(chat_id=update.effective_chat.id,
+                                                 text=response,
+                                                 parse_mode="MarkdownV2")
+            if not correct_name:
+                response = f"Did not found {specified_recipe_name}" \
+                           f" amongst the names you used\. \n\nHere are the correct ones:"
+                for recipe in found_recipes:
+                    response += f"\n\t\- *{recipe['keyword']}*"
+                context.bot.send_message(chat_id=update.effective_chat.id,
+                                         text=response,
+                                         parse_mode="MarkdownV2")
+        else:
+            response += "Here are keywords you used for recipe search:"
+            found_recipes = person["recipes"]
+            for recipe in found_recipes:
+                response += f"\n\t\- *{recipe['keyword']}*"
+
+            context.bot.send_message(chat_id=update.effective_chat.id,
+                                     text=response,
+                                     parse_mode="MarkdownV2")
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Looks you do not have a profile yet! Please enter /register to create one.")
+
+
+def view_menus(update, context):
+    person = collection.find_one({"telegram_user_id": update.effective_user.id})
+    if person:
+        menus = person["menus"]
+        daily_menus = len(menus["daily"])
+        weekly_menus = len(menus["weekly"])
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text=f"Here are the menus you have: {daily_menus} daily and {weekly_menus} weekly "
+                                      f"ones! Which one do you want to view?",
+                                 reply_markup=menu_types_markup)
+        return "view_type"
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Looks you do not have a profile yet! Please enter /register to create one.")
+        return ConversationHandler.END
+
+
+def view_specified_type_menu(update, context):
+    global menu_option
+    person = collection.find_one({"telegram_user_id": update.effective_user.id})
+    menu_option = update.message.text.lower()
+    if menu_option in ["daily", "weekly"]:
+        menus_length = len(person['menus'][menu_option])
+        if menus_length == 0:
+            context.bot.send_message(chat_id=update.effective_chat.id,
+                                     text="Looks like there are no menus here! Add one using /add command.")
+            return ConversationHandler.END
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text=f"Please enter number (from 1 to {menus_length}) - "
+                                      f"which of the {menu_option} menus to display:")
+        return "view_menu"
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Please press the button - Daily or Weekly :)",
+                                 reply_markup=menu_types_markup)
+
+
+def view_specified_menu(update, context):
+    global menu_option
+    reply = update.message.text
+    try:
+        index = int(reply) - 1
+        person = collection.find_one({"telegram_user_id": update.effective_user.id})
+        menus = person["menus"][menu_option]
+        if 0 <= index <= len(menus):
+            days = 7 if menu_option == "weekly" else 1
+            for day_menu in get_menu_info(days, menus[index], get_recipe_info):
+                sleep(1)
+                try:
+                    context.bot.send_message(chat_id=update.effective_chat.id,
+                                             text=day_menu,
+                                             parse_mode="MarkdownV2")
+                except Exception as e:
+                    for i in range(0, len(day_menu), 4096):
+                        context.bot.send_message(chat_id=update.effective_chat.id,
+                                                 text=day_menu[i:i+4096],
+                                                 parse_mode="MarkdownV2")
+            return ConversationHandler.END
+        else:
+            context.bot.send_message(chat_id=update.effective_chat.id,
+                                     text="Seems like incorrect number! Please enter it again.")
+            return "view_menu"
+    except ValueError as e:
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Seems like incorrect number! Please enter it again.")
+        return "view_menu"
 
 
 def unknown(update, context):
