@@ -38,6 +38,8 @@ add_menu_markup = ReplyKeyboardMarkup([[button, button2]], one_time_keyboard=Tru
 
 remove_markup = ReplyKeyboardRemove()
 
+clock_emoji = u'\U0001F550'
+
 person = {}
 
 help_list = """
@@ -328,14 +330,30 @@ def remove_user(update, context):
     return ConversationHandler.END
 
 
-def get_recipe_info(index, recipe):
-    some_emoji = u'\U0001F550'
+def get_shortened_recipe_info(index, recipe):
     recipe_info = f"""
 *{index}*
 
 *{re.escape(recipe["name"].capitalize())}*
 
-{some_emoji}"""
+{clock_emoji}"""
+    recipe_info += f""" {recipe['minutes']} minutes"""
+    recipe_info += """
+
+*Nutrition*: """
+    recipe_info += re.escape(f"{recipe['meal_nutrition']} calories")
+    recipe_info += f"\n"
+
+    return recipe_info
+
+
+def get_recipe_info(index, recipe):
+    recipe_info = f"""
+*{index}*
+
+*{re.escape(recipe["name"].capitalize())}*
+
+{clock_emoji}"""
     recipe_info += f""" {recipe["minutes"]} minutes
 
 *Ingredients*:"""
@@ -345,7 +363,7 @@ def get_recipe_info(index, recipe):
     recipe_info += """
 
 *Nutrition*: """
-    recipe_info += re.escape(f"{recipe['meal_nutrition']}")
+    recipe_info += re.escape(f"{recipe['meal_nutrition']} calories")
     recipe_info += """
 
 *Steps*:"""
@@ -384,24 +402,55 @@ def create_menu(update, context):
     person = collection.find_one({"telegram_user_id": update.effective_user.id})
     context.bot.send_message(chat_id=update.effective_chat.id,
                              text="You successfully added a menu!")
+
     for day in range(days):
+        result = ""
         sleep(1)
         menu = elastic_client.get_daily_menu(person["calories"])
         person["menus"][option.lower()].append(menu)
         collection.find_one_and_update({"telegram_user_id": update.effective_user.id},
                                        {"$set": {"menus": person["menus"]}})
+
+        if option == "Weekly":
+            if day == 0:
+                day_name = "Monday"
+            elif day == 1:
+                day_name = "Tuesday"
+            elif day == 2:
+                day_name = "Wednesday"
+            elif day == 3:
+                day_name = "Thursday"
+            elif day == 4:
+                day_name = "Friday"
+            elif day == 5:
+                day_name = "Saturday"
+            else:
+                day_name = "Sunday"
+            # context.bot.send_message(chat_id=update.effective_chat.id,
+            #                          text=f"*Menu for {day_name}:*",
+            #                          parse_mode="MarkdownV2")
+            result += f"""
+*Menu for {day_name}:*          
+            """
+
         index = "Breakfast"
         for meal in menu:
-            context.bot.send_message(chat_id=update.effective_chat.id,
-                                     text=get_recipe_info(index, meal),
-                                     parse_mode="MarkdownV2")
-            sleep(1)
+            # context.bot.send_message(chat_id=update.effective_chat.id,
+            #                          text=get_shortened_recipe_info(index, meal),
+            #                          parse_mode="MarkdownV2")
+            result += f"""
+{get_shortened_recipe_info(index, meal)}
+            """
+            # sleep(1)
             if index == "Breakfast":
                 index = "Dinner"
             elif index == "Dinner":
                 index = "Supper"
             else:
                 index = "Breakfast"
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text=result,
+                                 parse_mode="MarkdownV2")
     return ConversationHandler.END
 
 
