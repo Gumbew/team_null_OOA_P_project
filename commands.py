@@ -51,6 +51,11 @@ help_list = """
 /restart - remove your profile to create a new one
 /help - see help information
 /find <recipe name> - find recipes by entered name
+/add - create menu (daily or weekly) and add it to profile
+/check <recipe name> - view all found recipes by name
+/view - view all added menus (daily and weekly)
+/remove <recipe name> - remove recipe from the found ones
+/delete - delete menu from the profile (daily or weekly)
 """
 
 
