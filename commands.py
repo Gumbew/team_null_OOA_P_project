@@ -208,8 +208,7 @@ Daily norm of calories - {person["calories"]}
 
 
 def fallback(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text=f"Exiting as registration is not complete. "
-                                                                    f"Please enter /register to fill out your info.")
+    context.bot.send_message(chat_id=update.effective_chat.id, text=f"Exiting")
     return ConversationHandler.END
 
 
@@ -599,6 +598,106 @@ def view_specified_menu(update, context):
         context.bot.send_message(chat_id=update.effective_chat.id,
                                  text="Seems like incorrect number! Please enter it again.")
         return "view_menu"
+
+
+def remove_recipe(update, context):
+    person = collection.find_one({"telegram_user_id": update.effective_user.id})
+    response = ""
+    if person:
+        if context.args:
+            specified_recipe_name = " ".join(context.args)
+            correct_name = False
+            found_recipes = person["recipes"]
+            for index, recipe in enumerate(found_recipes):
+                if specified_recipe_name == recipe['keyword']:
+                    correct_name = True
+                    del person["recipes"][index]
+                    collection.find_one_and_update({"telegram_user_id": update.effective_user.id},
+                                                   {"$set": {"recipes": person["recipes"]}})
+                    context.bot.send_message(chat_id=update.effective_chat.id,
+                                             text=f"Successfully removed recipes for {specified_recipe_name} keyword!")
+            if not correct_name:
+                response = f"Did not found {specified_recipe_name}" \
+                           f" amongst the names you used\. \n\nHere are the correct ones:"
+                for recipe in found_recipes:
+                    response += f"\n\t\- *{recipe['keyword']}*"
+                context.bot.send_message(chat_id=update.effective_chat.id,
+                                         text=response,
+                                         parse_mode="MarkdownV2")
+        else:
+            response += "Here are keywords you used for recipe search:"
+            found_recipes = person["recipes"]
+            for recipe in found_recipes:
+                response += f"\n\t\- *{recipe['keyword']}*"
+            response += "\nPlease specify which one to remove\."
+
+            context.bot.send_message(chat_id=update.effective_chat.id,
+                                     text=response,
+                                     parse_mode="MarkdownV2")
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Looks you do not have a profile yet! Please enter /register to create one.")
+
+
+def delete_menu(update, context):
+    person = collection.find_one({"telegram_user_id": update.effective_user.id})
+    if person:
+        menus = person["menus"]
+        daily_menus = len(menus["daily"])
+        weekly_menus = len(menus["weekly"])
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text=f"Here are the menus you have: {daily_menus} daily and {weekly_menus} weekly "
+                                      f"ones! Which one do you want to delete?",
+                                 reply_markup=menu_types_markup)
+        return "delete_type"
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Looks you do not have a profile yet! Please enter /register to create one.")
+        return ConversationHandler.END
+
+
+def delete_specified_type_menu(update, context):
+    global menu_option
+    person = collection.find_one({"telegram_user_id": update.effective_user.id})
+    menu_option = update.message.text.lower()
+    if menu_option in ["daily", "weekly"]:
+        menus_length = len(person['menus'][menu_option])
+        if menus_length == 0:
+            context.bot.send_message(chat_id=update.effective_chat.id,
+                                     text="Looks like there are no menus here! Add one using /add command.")
+            return ConversationHandler.END
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text=f"Please enter number (from 1 to {menus_length}) - "
+                                      f"which of the {menu_option} menus to delete:")
+        return "delete_menu"
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Please press the button - Daily or Weekly :)",
+                                 reply_markup=menu_types_markup)
+
+
+def delete_specified_menu(update, context):
+    global menu_option
+    reply = update.message.text
+    try:
+        index = int(reply) - 1
+        person = collection.find_one({"telegram_user_id": update.effective_user.id})
+        menus = person["menus"][menu_option]
+        if 0 <= index <= len(menus):
+            del person["menus"][menu_option][index]
+            collection.find_one_and_update({"telegram_user_id": update.effective_user.id},
+                                           {"$set": {"menus": person["menus"]}})
+            context.bot.send_message(chat_id=update.effective_chat.id,
+                                     text="Successfully removed the menu!")
+            return ConversationHandler.END
+        else:
+            context.bot.send_message(chat_id=update.effective_chat.id,
+                                     text="Seems like incorrect number! Please enter it again.")
+            return "view_menu"
+    except ValueError as e:
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Seems like incorrect number! Please enter it again.")
+        return "delete_menu"
 
 
 def unknown(update, context):

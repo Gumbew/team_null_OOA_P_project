@@ -5,7 +5,7 @@ import os
 from commands import start, ask_user_info, get_name, get_age, get_sex, get_height, get_weight, show_info, fallback, \
     request_update, specify_update, update_name, update_age, update_height, update_weight,  restart, remove_user, \
     unknown, show_help_info, create_menu, find_meal, add_menu, check_recipes, view_menus, view_specified_type_menu, \
-    view_specified_menu
+    view_specified_menu, remove_recipe, delete_menu, delete_specified_type_menu, delete_specified_menu
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -101,6 +101,23 @@ view_menus_handler = ConversationHandler(
     ]
 )
 dispatcher.add_handler(view_menus_handler)
+
+remove_recipe_handler = CommandHandler('remove', remove_recipe)
+dispatcher.add_handler(remove_recipe_handler)
+
+delete_menu_handler = ConversationHandler(
+    entry_points=[
+        CommandHandler('delete', delete_menu)
+    ],
+    states={
+        "delete_type": [MessageHandler(Filters.text, delete_specified_type_menu)],
+        "delete_menu": [MessageHandler(Filters.text, delete_specified_menu)]
+    },
+    fallbacks=[
+        MessageHandler(Filters.command, fallback)
+    ]
+)
+dispatcher.add_handler(delete_menu_handler)
 
 # should always be last of the handlers in the code
 unknown_handler = MessageHandler(Filters.text, unknown)
